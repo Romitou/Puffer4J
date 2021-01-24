@@ -1,0 +1,16 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
+    id 'java'
+}
+
+group 'fr.romitou.puffer4j'
+version '1.0.0'
+
+repositories {
+    maven { url 'https://repo1.maven.org/maven2' }
+}
+
+dependencies {
+    compile 'com.squareup.retrofit2:retrofit:2.9.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.9.0'
+}
