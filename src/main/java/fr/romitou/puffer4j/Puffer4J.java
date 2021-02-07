@@ -4,7 +4,7 @@ import fr.romitou.puffer4j.requests.PufferAuth;
 import fr.romitou.puffer4j.responses.PufferNode;
 import fr.romitou.puffer4j.responses.PufferServer;
 import fr.romitou.puffer4j.responses.PufferSession;
-import okhttp3.*;
+import okhttp3.OkHttpClient;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
@@ -20,13 +20,13 @@ public class Puffer4J {
     private final PufferAuth pufferAuth;
     private final URI uri;
     private LocalDateTime sessionExpiration;
-    private PufferCookie pufferCookie;
+    private final PufferCookie pufferCookie;
     private List<String> scopes;
 
     /**
      * Create the PufferPanel API client.
      *
-     * @param uri The URL of your panel
+     * @param uri        The URL of your panel
      * @param pufferAuth The PufferAuth used to login the user
      * @throws PufferException An exception can be thrown if the login is unsuccessful.
      */
@@ -47,7 +47,7 @@ public class Puffer4J {
 
         // Build the Retrofit client.
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://puffer.romitou.fr")
+                .baseUrl(getDomain())
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();

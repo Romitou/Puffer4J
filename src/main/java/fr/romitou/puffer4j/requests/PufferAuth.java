@@ -2,13 +2,13 @@ package fr.romitou.puffer4j.requests;
 
 public class PufferAuth {
 
-    private String email;
-    private String password;
+    private final String email;
+    private final String password;
 
     /**
      * Create a authorization object for PufferPanel in order to retrieve user session.
      *
-     * @param email The user's email address
+     * @param email    The user's email address
      * @param password The user's password
      */
     public PufferAuth(String email, String password) {

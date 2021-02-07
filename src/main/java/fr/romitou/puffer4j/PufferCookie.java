@@ -9,8 +9,8 @@ import java.util.List;
 
 public class PufferCookie implements CookieJar {
 
-    private String session;
     private final String domain;
+    private String session;
 
     public PufferCookie(String session, String domain) {
         this.session = session;
@@ -22,7 +22,8 @@ public class PufferCookie implements CookieJar {
     }
 
     @Override
-    public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {}
+    public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+    }
 
     @Override
     public List<Cookie> loadForRequest(HttpUrl url) {
