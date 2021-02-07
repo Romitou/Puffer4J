@@ -1,94 +1,143 @@
 package fr.romitou.puffer4j;
 
-import fr.romitou.puffer4j.objects.AuthRequest;
-import fr.romitou.puffer4j.objects.PufferSession;
+import fr.romitou.puffer4j.requests.PufferAuth;
+import fr.romitou.puffer4j.responses.PufferNode;
+import fr.romitou.puffer4j.responses.PufferServer;
+import fr.romitou.puffer4j.responses.PufferSession;
 import okhttp3.*;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class Puffer4J {
 
-    private final Retrofit retrofit;
-    private PufferService pufferService;
-    private String sessionToken;
+    private final PufferService pufferService;
+    private final PufferAuth pufferAuth;
+    private final URI uri;
+    private LocalDateTime sessionExpiration;
+    private PufferCookie pufferCookie;
     private List<String> scopes;
 
-    public Puffer4J(String baseUrl, String user, String password, Boolean useSSL) throws PufferException {
-        OkHttpClient client = new OkHttpClient.Builder()
-                .cookieJar(new CookieJar() {
-                    @Override
-                    public void saveFromResponse(HttpUrl url, List<Cookie> cookies) { }
+    /**
+     * Create the PufferPanel API client.
+     *
+     * @param uri The URL of your panel
+     * @param pufferAuth The PufferAuth used to login the user
+     * @throws PufferException An exception can be thrown if the login is unsuccessful.
+     */
+    public Puffer4J(URI uri, PufferAuth pufferAuth) throws PufferException {
 
-                    @Override
-                    public List<Cookie> loadForRequest(HttpUrl url) {
-                        final ArrayList<Cookie> cookies = new ArrayList<>(1);
-                        if (sessionToken != null)
-                            cookies.add(new Cookie.Builder()
-                                    .domain(baseUrl)
-                                    .path("/")
-                                    .name("puffer_auth")
-                                    .value(sessionToken)
-                                    .httpOnly()
-                                    .secure()
-                                    .build()
-                            );
-                        return cookies;
-                    }
-                })
-                .addInterceptor(chain -> {
-                    Request request = chain.request().newBuilder()
-                            .addHeader("Content-Type", "application/json")
-                            .addHeader("Accept", "application/json")
-                            .build();
-                    return chain.proceed(request);
-                })
+        // Store these informations in order to renew the token when needed.
+        this.pufferAuth = pufferAuth;
+        this.uri = uri;
+
+        // Initialize a default PufferCookie
+        this.pufferCookie = new PufferCookie(null, getDomain());
+
+        // Build the OkHttpClient used by Retrofit, including PufferCookie to authenticate the user
+        OkHttpClient client = new OkHttpClient.Builder()
+                .cookieJar(this.pufferCookie)
+                .addInterceptor(new PufferHeader())
                 .build();
-        this.retrofit = new Retrofit.Builder()
-                .baseUrl((useSSL ? "https://" : "http://") + baseUrl)
+
+        // Build the Retrofit client.
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://puffer.romitou.fr")
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-        this.pufferService = this.retrofit.create(PufferService.class);
 
-        PufferSession pufferSession = authenticate(new AuthRequest(user, password));
-        this.sessionToken = pufferSession.getSessionToken();
+        // Store the PufferService to easily access in the methods.
+        this.pufferService = retrofit.create(PufferService.class);
+
+        // Try to authenticate the current user and get a session.
+        this.authenticate();
+    }
+
+    public String getDomain() {
+        String domain = this.uri.getHost();
+        return domain.startsWith("www.") ? domain.substring(4) : domain;
+    }
+
+    public void checkRenewToken() throws PufferException {
+        if (this.sessionExpiration == null || this.sessionExpiration.compareTo(LocalDateTime.now()) > 0) return;
+        System.out.println("[Puffer4J] The session has expired. Renewing...");
+        authenticate();
+    }
+
+    public void authenticate() throws PufferException {
+        String domain = getDomain();
+
+        if (!(domain.equals("127.0.0.1") || domain.equals("localhost")) && !(this.uri.getScheme().equals("https")))
+            System.out.println("[Puffer4J] Warning: you are using Puffer4J with a remote server in an insecure mode. You are strongly encouraged to use SSL by changing the Puffer4J constructor's useSSL parameter.");
+
+        PufferSession pufferSession = getSession(this.pufferAuth);
         this.scopes = pufferSession.getScopes();
+        this.pufferCookie.setSession(pufferSession.getSession());
+
+        // Define the session expiration in order to request a new session when needed.
+        this.sessionExpiration = LocalDateTime.now().plusHours(2L);
     }
 
     public List<String> getScopes() {
-        return scopes;
+        return this.scopes;
     }
 
-    public PufferSession authenticate(AuthRequest authRequest) throws PufferException {
+    public PufferNode createNode(PufferNode pufferNode) throws PufferException {
+        checkRenewToken();
+        Response<PufferNode> node;
+        try {
+            node = this.pufferService.createNode(pufferNode).execute();
+        } catch (IOException e) {
+            throw new PufferException("creating a node", e);
+        }
+        return parse(node);
+    }
+
+    public List<PufferNode> getNodes() throws PufferException {
+        checkRenewToken();
+        Response<List<PufferNode>> nodes;
+        try {
+            nodes = this.pufferService.getNodes().execute();
+        } catch (IOException e) {
+            throw new PufferException("getting nodes", e);
+        }
+        return parse(nodes);
+    }
+
+    public List<PufferServer> getServers() throws PufferException {
+        checkRenewToken();
+        Response<List<PufferServer>> servers;
+        try {
+            servers = this.pufferService.getServers().execute();
+        } catch (IOException e) {
+            throw new PufferException("getting nodes", e);
+        }
+        return parse(servers);
+    }
+
+    public PufferSession getSession(PufferAuth pufferAuth) throws PufferException {
         Response<PufferSession> session;
         try {
-            System.out.println(this.pufferService.getSession(authRequest).request().toString());
-            session = this.pufferService.getSession(authRequest).execute();
+            session = this.pufferService.getSession(pufferAuth).execute();
         } catch (IOException e) {
-            throw new PufferException("Error while getting session ", e);
+            throw new PufferException("getting session", e);
         }
         return parse(session);
     }
 
     public <T> T parse(Response<T> response) throws PufferException {
-        try {
-            if (response.isSuccessful()) {
-                T responseBody = response.body();
-                if (responseBody != null)
-                    return responseBody;
-                else
-                    throw new PufferException("Received response null response body");
-            } else {
-                throw new PufferException("Request on " + response.raw().request().url() + " was not successful and returned " + response.code() + " HTTP code.");
-            }
-        } catch (PufferException e) {
-            throw new PufferException("Cannot read body." + response.raw());
-        }
+        if (!response.isSuccessful())
+            throw new PufferException(response);
+        T responseBody = response.body();
+        if (responseBody == null)
+            throw new PufferException(response);
+        return responseBody;
     }
 
 }
