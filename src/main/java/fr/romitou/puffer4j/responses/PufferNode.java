@@ -1,4 +1,4 @@
-package fr.romitou.puffer4j.objects;
+package fr.romitou.puffer4j.responses;
 
 public class PufferNode {
 
@@ -15,6 +15,16 @@ public class PufferNode {
     private Integer publicPort;
 
     private Integer sftpPort;
+
+    public PufferNode(Integer id, String name, String privateHost, Integer privatePort, String publicHost, Integer publicPort, Integer sftpPort) {
+        this.id = id;
+        this.name = name;
+        this.privateHost = privateHost;
+        this.privatePort = privatePort;
+        this.publicHost = publicHost;
+        this.publicPort = publicPort;
+        this.sftpPort = sftpPort;
+    }
 
     public Integer getId() {
         return id;

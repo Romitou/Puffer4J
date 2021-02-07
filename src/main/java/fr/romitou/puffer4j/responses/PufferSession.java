@@ -1,19 +1,19 @@
-package fr.romitou.puffer4j.objects;
+package fr.romitou.puffer4j.responses;
 
 import java.util.List;
 
 public class PufferSession {
 
-    private String sessionToken;
+    private String session;
 
     private List<String> scopes;
 
-    public String getSessionToken() {
-        return sessionToken;
+    public String getSession() {
+        return session;
     }
 
-    public void setSessionToken(String sessionToken) {
-        this.sessionToken = sessionToken;
+    public void setSession(String session) {
+        this.session = session;
     }
 
     public List<String> getScopes() {
