@@ -1,5 +1,7 @@
 package fr.romitou.puffer4j.responses;
 
+import java.util.Objects;
+
 public class PufferNode {
 
     private Integer id;
@@ -82,4 +84,35 @@ public class PufferNode {
         this.sftpPort = sftpPort;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PufferNode that = (PufferNode) o;
+        return Objects.equals(id, that.id)
+                && Objects.equals(name, that.name)
+                && Objects.equals(privateHost, that.privateHost)
+                && Objects.equals(privatePort, that.privatePort)
+                && Objects.equals(publicHost, that.publicHost)
+                && Objects.equals(publicPort, that.publicPort)
+                && Objects.equals(sftpPort, that.sftpPort);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, privateHost, privatePort, publicHost, publicPort, sftpPort);
+    }
+
+    @Override
+    public String toString() {
+        return "PufferNode{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", privateHost='" + privateHost + '\'' +
+                ", privatePort=" + privatePort +
+                ", publicHost='" + publicHost + '\'' +
+                ", publicPort=" + publicPort +
+                ", sftpPort=" + sftpPort +
+                '}';
+    }
 }

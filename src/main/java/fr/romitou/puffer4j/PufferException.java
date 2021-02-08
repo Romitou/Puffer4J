@@ -11,7 +11,7 @@ public class PufferException extends Exception {
     }
 
     public PufferException(String message, IOException e) {
-        super("An error occurred while " + message + ":" + e);
+        super("An error occurred while " + message + ": " + e);
     }
 
     public <T> PufferException(Response<T> response) {
