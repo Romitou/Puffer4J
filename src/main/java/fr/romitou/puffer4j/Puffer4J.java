@@ -47,7 +47,7 @@ public class Puffer4J {
 
         // Build the Retrofit client.
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(getDomain())
+                .baseUrl(this.uri.toString())
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
