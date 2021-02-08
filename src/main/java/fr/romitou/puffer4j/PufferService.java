@@ -1,6 +1,7 @@
 package fr.romitou.puffer4j;
 
 import fr.romitou.puffer4j.requests.PufferAuth;
+import fr.romitou.puffer4j.requests.PufferSelfUpdate;
 import fr.romitou.puffer4j.responses.*;
 import retrofit2.Call;
 import retrofit2.http.*;
@@ -18,7 +19,7 @@ public interface PufferService {
     Call<PufferUser> getSelf();
 
     @POST("/api/self")
-    Call<PufferUser> updateSelf(@Body PufferUser pufferUser);
+    Call<PufferUser> updateSelf(@Body PufferSelfUpdate pufferSelfUpdate);
 
 
     // -- Nodes --
@@ -45,9 +46,9 @@ public interface PufferService {
     // -- Servers --
 
     @GET("/api/servers")
-    Call<List<PufferServer>> getServers();
+    Call<PufferPagedServers> getServers();
 
     @GET("/api/servers/{id}")
-    Call<PufferServer> getServer(@Path("id") String id);
+    Call<PufferSingleServer> getServer(@Path("id") String id);
 
 }

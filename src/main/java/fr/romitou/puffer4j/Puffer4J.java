@@ -1,9 +1,8 @@
 package fr.romitou.puffer4j;
 
 import fr.romitou.puffer4j.requests.PufferAuth;
-import fr.romitou.puffer4j.responses.PufferNode;
-import fr.romitou.puffer4j.responses.PufferServer;
-import fr.romitou.puffer4j.responses.PufferSession;
+import fr.romitou.puffer4j.requests.PufferSelfUpdate;
+import fr.romitou.puffer4j.responses.*;
 import okhttp3.OkHttpClient;
 import retrofit2.Response;
 import retrofit2.Retrofit;
@@ -111,6 +110,15 @@ public class Puffer4J {
     }
 
     /**
+     * Get the current user PufferPanel scopes.
+     *
+     * @return The current user's PufferPanel scopes.
+     */
+    public List<String> getUserScopes() {
+        return this.userScopes;
+    }
+
+    /**
      * Get a session for the given user.
      * If you want simply login your user, please use Puffer4J#authenticate instead.
      * @see Puffer4J#authenticate(PufferAuth)
@@ -131,30 +139,39 @@ public class Puffer4J {
     }
 
     /**
-     * Get the current user PufferPanel scopes.
+     * Get the self user that is currently logged in PufferPanel.
      *
-     * @return The current user's PufferPanel scopes.
+     * @return The self user that is currently logged in PufferPanel.
+     * @throws PufferException An exception can be thrown if there is an error.
      */
-    public List<String> getUserScopes() {
-        return this.userScopes;
+    public PufferUser getSelf() throws PufferException {
+        checkRenewToken();
+        Response<PufferUser> user;
+        try {
+            user = this.pufferService.getSelf().execute();
+        } catch (IOException e) {
+            throw new PufferException("getting self", e);
+        }
+        return parse(user);
     }
 
     /**
-     * Create a new PufferPanel node.
+     * Update the self user that is currently logged in PufferPanel.
+     * You can change all informations such as password, email, username...
      *
-     * @param pufferNode The node that will be created.
-     * @return The created node.
+     * @param pufferSelfUpdate The new user informations object.
+     * @return The modified user.
      * @throws PufferException An exception can be thrown if there is an error.
      */
-    public PufferNode createNode(PufferNode pufferNode) throws PufferException {
-        checkRenewToken(); // Check if the token has expired, and renew it.
-        Response<PufferNode> node;
+    public PufferUser updateSelf(PufferSelfUpdate pufferSelfUpdate) throws PufferException {
+        checkRenewToken();
+        Response<PufferUser> pufferUser;
         try {
-            node = this.pufferService.createNode(pufferNode).execute();
+            pufferUser = this.pufferService.updateSelf(pufferSelfUpdate).execute();
         } catch (IOException e) {
-            throw new PufferException("creating a node", e);
+            throw new PufferException("updating self", e);
         }
-        return parse(node);
+        return parse(pufferUser);
     }
 
     /**
@@ -174,21 +191,116 @@ public class Puffer4J {
         return parse(nodes);
     }
 
+    public PufferNode getNode(String nodeId) throws PufferException {
+        checkRenewToken();
+        Response<PufferNode> node;
+        try {
+            node = this.pufferService.getNode(nodeId).execute();
+        } catch (IOException e) {
+            throw new PufferException("getting node " + nodeId, e);
+        }
+        return parse(node);
+    }
+
+    /**
+     * Create a new PufferPanel node.
+     *
+     * @param pufferNode The node that will be created.
+     * @return The created node.
+     * @throws PufferException An exception can be thrown if there is an error.
+     */
+    public PufferNode createNode(PufferNode pufferNode) throws PufferException {
+        checkRenewToken(); // Check if the token has expired, and renew it.
+        Response<PufferNode> node;
+        try {
+            node = this.pufferService.createNode(pufferNode).execute();
+        } catch (IOException e) {
+            throw new PufferException("creating node", e);
+        }
+        return parse(node);
+    }
+
+    /**
+     * Edit a PufferPanel node.
+     *
+     * @param nodeId The targeted node that will be edited.
+     * @param pufferNode The node informations that will be edited.
+     * @return Void if successful, else PufferException.
+     * @throws PufferException An exception can be thrown if there is an error.
+     */
+    public Void editNode(String nodeId, PufferNode pufferNode) throws PufferException {
+        checkRenewToken();
+        Response<Void> node;
+        try {
+            node = this.pufferService.editNode(nodeId, pufferNode).execute();
+        } catch (IOException e) {
+            throw new PufferException("updating node " + nodeId, e);
+        }
+        return parse(node);
+    }
+
+    /**
+     * Delete a PufferPanel node.
+     *
+     * @param nodeId The targeted node that will be deleted.
+     * @return Void if successful, else PufferException.
+     * @throws PufferException An exception can be thrown if there is an error.
+     */
+    public Void deleteNode(String nodeId) throws PufferException {
+        checkRenewToken();
+        Response<Void> node;
+        try {
+            node = this.pufferService.deleteNode(nodeId).execute();
+        } catch (IOException e) {
+            throw new PufferException("deleting node " + nodeId, e);
+        }
+        return parse(node);
+    }
+
+    /**
+     * Get a PufferPanel deploy node informations.
+     *
+     * @param nodeId The targeted node for get deploy informations.
+     * @return The deploy informations for the targeted node.
+     * @throws PufferException An exception can be thrown if there is an error.
+     */
+    public PufferDeploy getNodeDeploy(String nodeId) throws PufferException {
+        checkRenewToken();
+        Response<PufferDeploy> deploy;
+        try {
+            deploy = this.pufferService.getNodeDeploy(nodeId).execute();
+        } catch (IOException e) {
+            throw new PufferException("getting node deploy " + nodeId, e);
+        }
+        return parse(deploy);
+    }
+
     /**
      * Get all the PufferPanel servers.
      *
      * @return The PufferPanel servers.
      * @throws PufferException An exception can be thrown if there is an error.
      */
-    public List<PufferServer> getServers() throws PufferException {
+    public PufferPagedServers getServers() throws PufferException {
         checkRenewToken(); // Check if the token has expired, and renew it.
-        Response<List<PufferServer>> servers;
+        Response<PufferPagedServers> servers;
         try {
             servers = this.pufferService.getServers().execute();
         } catch (IOException e) {
-            throw new PufferException("getting nodes", e);
+            throw new PufferException("getting servers", e);
         }
         return parse(servers);
+    }
+
+    public PufferSingleServer getServer(String serverId) throws PufferException {
+        checkRenewToken();
+        Response<PufferSingleServer> server;
+        try {
+            server = this.pufferService.getServer(serverId).execute();
+        } catch (IOException e) {
+            throw new PufferException("getting server " + serverId, e);
+        }
+        return parse(server);
     }
 
     /**
@@ -203,7 +315,7 @@ public class Puffer4J {
         if (!response.isSuccessful())
             throw new PufferException(response);
         T responseBody = response.body();
-        if (responseBody == null)
+        if (responseBody == null && response.code() != 204)
             throw new PufferException(response);
         return responseBody;
     }

@@ -2,8 +2,6 @@ package fr.romitou.puffer4j.responses;
 
 public class PufferServer {
 
-    private Object data;
-
     private String id;
 
     private String ip;
@@ -17,16 +15,6 @@ public class PufferServer {
     private Integer port;
 
     private String type;
-
-    private PufferScopedUser[] users;
-
-    public Object getData() {
-        return data;
-    }
-
-    public void setData(Object data) {
-        this.data = data;
-    }
 
     public String getId() {
         return id;
@@ -84,11 +72,16 @@ public class PufferServer {
         this.type = type;
     }
 
-    public PufferScopedUser[] getUsers() {
-        return users;
-    }
-
-    public void setUsers(PufferScopedUser[] users) {
-        this.users = users;
+    @Override
+    public String toString() {
+        return "PufferServer{" +
+                "id='" + id + '\'' +
+                ", ip='" + ip + '\'' +
+                ", name='" + name + '\'' +
+                ", node=" + node +
+                ", nodeId=" + nodeId +
+                ", port=" + port +
+                ", type='" + type + '\'' +
+                '}';
     }
 }
