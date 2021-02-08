@@ -13,28 +13,36 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Puffer4J {
 
     private final PufferService pufferService;
+    private final PufferCookie pufferCookie;
     private final PufferAuth pufferAuth;
+    private final Logger logger;
     private final URI uri;
     private LocalDateTime sessionExpiration;
-    private final PufferCookie pufferCookie;
-    private List<String> scopes;
+    private List<String> userScopes;
 
     /**
      * Create the PufferPanel API client.
      *
      * @param uri        The URL of your panel
      * @param pufferAuth The PufferAuth used to login the user
+     * @param level      The Java Logger level
      * @throws PufferException An exception can be thrown if the login is unsuccessful.
      */
-    public Puffer4J(URI uri, PufferAuth pufferAuth) throws PufferException {
+    public Puffer4J(URI uri, PufferAuth pufferAuth, Level level) throws PufferException {
 
         // Store these informations in order to renew the token when needed.
         this.pufferAuth = pufferAuth;
         this.uri = uri;
+
+        // Initialize the Java Logger
+        this.logger = Logger.getLogger(Logger.GLOBAL_LOGGER_NAME);
+        this.logger.setLevel(level);
 
         // Initialize a default PufferCookie
         this.pufferCookie = new PufferCookie(null, getDomain());
@@ -66,7 +74,7 @@ public class Puffer4J {
 
     public void checkRenewToken() throws PufferException {
         if (this.sessionExpiration == null || this.sessionExpiration.compareTo(LocalDateTime.now()) > 0) return;
-        System.out.println("[Puffer4J] The session has expired. Renewing...");
+        this.logger.info("The session has expired. Renewing...");
         authenticate();
     }
 
@@ -74,22 +82,22 @@ public class Puffer4J {
         String domain = getDomain();
 
         if (!(domain.equals("127.0.0.1") || domain.equals("localhost")) && !(this.uri.getScheme().equals("https")))
-            System.out.println("[Puffer4J] Warning: you are using Puffer4J with a remote server in an insecure mode. You are strongly encouraged to use SSL by changing the Puffer4J constructor's useSSL parameter.");
+            this.logger.severe("You are using Puffer4J with a remote server in an insecure mode. You are strongly encouraged to use SSL by changing the Puffer4J constructor's useSSL parameter.");
 
         PufferSession pufferSession = getSession(this.pufferAuth);
-        this.scopes = pufferSession.getScopes();
+        this.userScopes = pufferSession.getScopes();
         this.pufferCookie.setSession(pufferSession.getSession());
 
         // Define the session expiration in order to request a new session when needed.
         this.sessionExpiration = LocalDateTime.now().plusHours(2L);
     }
 
-    public List<String> getScopes() {
-        return this.scopes;
+    public List<String> getUserScopes() {
+        return this.userScopes;
     }
 
     public PufferNode createNode(PufferNode pufferNode) throws PufferException {
-        checkRenewToken();
+        checkRenewToken(); // Check if the token has expired, and renew it.
         Response<PufferNode> node;
         try {
             node = this.pufferService.createNode(pufferNode).execute();
@@ -100,7 +108,7 @@ public class Puffer4J {
     }
 
     public List<PufferNode> getNodes() throws PufferException {
-        checkRenewToken();
+        checkRenewToken(); // Check if the token has expired, and renew it.
         Response<List<PufferNode>> nodes;
         try {
             nodes = this.pufferService.getNodes().execute();
@@ -111,7 +119,7 @@ public class Puffer4J {
     }
 
     public List<PufferServer> getServers() throws PufferException {
-        checkRenewToken();
+        checkRenewToken(); // Check if the token has expired, and renew it.
         Response<List<PufferServer>> servers;
         try {
             servers = this.pufferService.getServers().execute();
@@ -122,6 +130,7 @@ public class Puffer4J {
     }
 
     public PufferSession getSession(PufferAuth pufferAuth) throws PufferException {
+        // Don't check the renew token...
         Response<PufferSession> session;
         try {
             session = this.pufferService.getSession(pufferAuth).execute();
